@@ -1,3 +1,11 @@
-0.1:
+Revision history for Perl extension PDL::LAPACK
 
-Initial release.
+0.11:	2004-07-10
+
+	* Fixed a bug when using the inplace operator.
+	* Forgot to free a malloc'ed memory.
+	* Now using 'strict'
+
+0.1:	2004-06-02
+
+	* Initial release.

@@ -1,4 +1,4 @@
-$VERSION = '0.1';
+$VERSION = '0.11';
 
 pp_bless('PDL::LAPACK');
 pp_addpm {At => Top}, <<'EOD';
@@ -38,7 +38,15 @@ EOD
 
 
 
+###########################################################################
+# perl uses
+###########################################################################
 
+pp_addpm(<<'EOD');
+
+use strict;
+
+EOD
 
 ###########################################################################
 # include header files
@@ -57,6 +65,7 @@ pp_addhdr('
 pp_def('posv',
 	HandleBad => 0, # no bad value handling yet
 	Pars => '[o] a(n,n); [o] b(n,m);',
+	OtherPars => '',
 	GenericTypes => [D], # this function should only be called with 'double' values
 	Inplace => ['a', 'b'], # this function is able to work inplace
 	Code => '
@@ -90,8 +99,16 @@ sub PDL::LAPACK::posv {
 
 
 	# inplace operation ?
-	$a = $a->is_inplace ? $a : $a->copy;
-	$b = $b->is_inplace ? $b : $b->copy;
+	if ($a->is_inplace){
+	    $a->set_inplace(0)
+	}else{
+	    $a=$a->copy;
+	}
+	if ($b->is_inplace){
+	    $b->set_inplace(0)
+	}else{
+	    $b=$b->copy;
+	}
 	&PDL::LAPACK::_posv_int($a, $b);
 
 	return $b;
@@ -110,6 +127,7 @@ pp_addpm("\n=head1 FUNCTIONS - ADDITIONAL FUNCTIONS BASED ON LAPACK FUNCTIONS\n"
 pp_def('geinv', # general inverse 
 	HandleBad => 0, # no bad value handling yet
 	Pars => '[o] a(n,n); ',
+	OtherPars => '',
 	GenericTypes => [D], # this function should only be called with 'double' values
 	Inplace => ['a'], # this function is able to work inplace
 	Code => '
@@ -128,9 +146,16 @@ pp_def('geinv', # general inverse
 
 	    dgetrf_(&n_size,&n_size,$P(a),&n_size,ipiv,&info);
 
-	    if (info != 0) {barf("GEINV: DGETRF: error in LU factorization\n");};		
+	    if (info != 0) {
+		free(ipiv);
+		free(work);
+		barf("GEINV: DGETRF: error in LU factorization\n");
+	    };
 
 	    dgetri_(&n_size,$P(a),&n_size,ipiv,work,&n_size,&info);
+
+	    free(ipiv);
+	    free(work);
 
 	    if (info != 0) {barf("GEINV: DGETRI: error in Invert Matrix\n");};		
 
@@ -148,7 +173,11 @@ sub PDL::LAPACK::geinv {
 		unless( @dims_a == 2 && $dims_a[0] == $dims_a[1] );
 
 	# inplace operation ?
-	$a = $a->is_inplace ? $a : $a->copy;
+	if ($a->is_inplace){
+	    $a->set_inplace(0)
+	}else{
+	    $a=$a->copy;
+	}
 		
 	&PDL::LAPACK::_geinv_int($a);
 
@@ -164,6 +193,7 @@ sub PDL::LAPACK::geinv {
 pp_def('poinv', # inverse of positiv definite symmetric square matrix
 	HandleBad => 0, # no bad value handling yet
 	Pars => '[o] a(n,n); ',
+	OtherPars => '',
 	GenericTypes => [D], # this function should only be called with 'double' values
 	Inplace => ['a'], # this function is able to work inplace
 	Code => '
@@ -206,7 +236,11 @@ sub PDL::LAPACK::poinv {
 		unless( @dims_a == 2 && $dims_a[0] == $dims_a[1] );
 
 	# inplace operation ?
-	$a = $a->is_inplace ? $a : $a->copy;
+	if ($a->is_inplace){
+	    $a->set_inplace(0)
+	}else{
+	    $a->$a->copy;
+	}
 
 	&PDL::LAPACK::_poinv_int($a);
 
