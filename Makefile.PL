@@ -3,7 +3,7 @@ use ExtUtils::MakeMaker;
 PDL::Core::Dev->import();
 
 
-$package = ["lapack.pd",LAPACK, PDL::LAPACK];
+$package = ["lapack.pd",LAPACK,PDL::LAPACK];
 
 # the hash helps dh-make-perl to find needed name and version strings
 # ( for creating a debian package:

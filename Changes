@@ -1,5 +1,10 @@
 Revision history for Perl extension PDL::LAPACK
 
+0.12:   2004-09-11
+
+	* now using newer ExtUtils::MakeMaker (dist now includes META.yml) for
+		better cpan integration
+
 0.11:	2004-07-10
 
 	* Fixed a bug when using the inplace operator.
