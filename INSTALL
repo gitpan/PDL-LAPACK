@@ -1,0 +1,56 @@
+INSTALLATION
+------------
+
+Installing PDL::LAPACK requires an installed PDL package, which should 
+include PDL::PP. PDL::PP is preprocessor which simplyfies the access
+of PDL piddles from C.
+
+Steps To Build:
+1. if you don't have a global reachable CLAPACK installation (like me, 
+   because i could find a clapack debian package), you need to compile 
+   and install CLAPACK first. Have a look at 'COMPILING CLAPACK'.
+2. edit Makefile.PL to match your system settings (name of liblapack.so, 
+   include dir, etc.)
+3. perl Makefile.PL 
+4. make
+5. make test
+6. make install
+7. have fun ...
+
+
+COMPILING CLAPACK
+-----------------
+Download CLAPACK from http://www.netlib.org/clapack/.
+
+Untar the package and configure make.inc before starting to build the
+libraries.
+Since the author uses a gnu/linux installation on i386 with gcc and 
+wants to link against the atlas library, following variables in make.inc
+needed to be changed:
+
+PLAT      = _LINUX
+CC        = gcc
+CFLAGS    = -funroll-loops -O2 
+LOADER    = gcc
+LOADOPTS  = -O2 
+NOOPT     = -O2
+BLASLIB   = ../../libcblaswr.a -lcblas -latlas
+
+Now copy following files into the LAPACK directory:
+
+CLAPACK/blaswrap.h
+CLAPACK/clapack.h
+CLAPACK/f2c.h
+CLAPACK/libF77.a
+CLAPACK/libI77.a
+CLAPACK/libcblaswr.a
+CLAPACK/liblapack_LINUX.a
+CLAPACK/tmglib_LINUX.a
+
+The *_LINUX libraries may be named according to your architecture.
+The lapack_LINUX.a should be renamed into liblapack_LINUX.a for linking.
+
+
+-- Harald Bartel (harald.bartel@prozentor.de)
+
+

@@ -1,0 +1,256 @@
+$VERSION = '0.1';
+
+pp_bless('PDL::LAPACK');
+pp_addpm {At => Top}, <<'EOD';
+=head1 NAME
+
+PDL::LAPACK - Perl module to access the linear algebra package LAPACK from PDL
+
+=head1 SYNOPSIS
+
+use PDL;
+use PDL::LAPACK;
+
+#create a pdl matrix
+$a= pdl [ [1 , 2] , [2 , 5 ]];
+
+#invert $a and print it
+print geinv($a);
+
+=head1 DESCRIPTION
+
+This module allows to access the fast LAPACK linear algebra functions from 
+perl PDL.
+
+You are allowed to use the inplace operator with most functions. Please have
+a look at the LAPACK documentation or the corresponding fortran file for 
+details of the contents of the resulting matrices.
+
+=cut
+
+EOD
+
+
+###########################################################################
+# add function definitions after finishing the first pp_addpm(), since this
+# adds a '=head1 FUNCTIONS' line at the end of the text
+###########################################################################
+
+
+
+
+
+###########################################################################
+# include header files
+###########################################################################
+
+pp_addhdr('
+#include <f2c.h>
+#include <clapack.h>
+');
+
+
+###########################################################################
+# direct interfaces to LAPACK functions
+###########################################################################
+
+pp_def('posv',
+	HandleBad => 0, # no bad value handling yet
+	Pars => '[o] a(n,n); [o] b(n,m);',
+	GenericTypes => [D], # this function should only be called with 'double' values
+	Inplace => ['a', 'b'], # this function is able to work inplace
+	Code => '
+
+	    integer n_size,m_size;
+	    integer info;
+	    char *uplo="U";
+		
+	    n_size = $COMP(__n_size);
+	    m_size = $COMP(__m_size);
+
+	    dposv_(uplo, &n_size, &m_size, $P(a), &n_size, $P(b), &n_size, &info);
+
+	    if (info != 0) {barf("error posv\n");};		
+',
+
+	PMCode => '
+	
+sub PDL::LAPACK::posv {
+	my ($a, $b)=@_;
+
+	my(@dims_a) = $a->dims;
+	my(@dims_b) = $b->dims;
+	
+	# Keep from dumping core (FORTRAN does no error checking)
+#	barf("posv requires a 2-D square matrix as first arg")
+#		unless( @dims_a == 2 && $dims_a[0] == $dims_a[1] );
+
+#	barf("xxx requires a 2-D xxx")
+#falsch		unless( @dims_b == 2 && $dims_a[1] == $dims_b[1]);
+
+
+	# inplace operation ?
+	$a = $a->is_inplace ? $a : $a->copy;
+	$b = $b->is_inplace ? $b : $b->copy;
+	&PDL::LAPACK::_posv_int($a, $b);
+
+	return $b;
+}',
+
+	Doc =>   'X=posv(A, B) - compute the solution to a real system of linear equations  A * X = B, where A is an N-by-N symmetric positive definite matrix and X and B are N-by-M matrices.',
+	);
+
+
+###########################################################################
+# additional functions which are based on LAPACK functions
+###########################################################################
+pp_addpm("\n=head1 FUNCTIONS - ADDITIONAL FUNCTIONS BASED ON LAPACK FUNCTIONS\n");
+
+
+pp_def('geinv', # general inverse 
+	HandleBad => 0, # no bad value handling yet
+	Pars => '[o] a(n,n); ',
+	GenericTypes => [D], # this function should only be called with 'double' values
+	Inplace => ['a'], # this function is able to work inplace
+	Code => '
+
+	    integer n_size;
+	    integer info;
+	    char *uplo="U";
+	    doublereal *work;
+	    integer *ipiv;	
+	
+	    n_size = $COMP(__n_size);
+
+	    /* allocate some LAPACK work space */
+	    ipiv= (integer *) malloc(n_size*sizeof(integer));
+	    work= (doublereal *) malloc(n_size*sizeof(doublereal));
+
+	    dgetrf_(&n_size,&n_size,$P(a),&n_size,ipiv,&info);
+
+	    if (info != 0) {barf("GEINV: DGETRF: error in LU factorization\n");};		
+
+	    dgetri_(&n_size,$P(a),&n_size,ipiv,work,&n_size,&info);
+
+	    if (info != 0) {barf("GEINV: DGETRI: error in Invert Matrix\n");};		
+
+',
+
+	PMCode => '
+	
+sub PDL::LAPACK::geinv {
+	my ($a)=@_;
+
+	my(@dims_a) = $a->dims;
+	
+	# Keep from dumping core (FORTRAN does no error checking)
+	barf("geinv requires a 2-D square matrix arg")
+		unless( @dims_a == 2 && $dims_a[0] == $dims_a[1] );
+
+	# inplace operation ?
+	$a = $a->is_inplace ? $a : $a->copy;
+		
+	&PDL::LAPACK::_geinv_int($a);
+
+
+	return $a;
+}',
+
+	Doc =>   'Inverse of a (general) square matrix',
+	);
+
+
+
+pp_def('poinv', # inverse of positiv definite symmetric square matrix
+	HandleBad => 0, # no bad value handling yet
+	Pars => '[o] a(n,n); ',
+	GenericTypes => [D], # this function should only be called with 'double' values
+	Inplace => ['a'], # this function is able to work inplace
+	Code => '
+
+	    integer n_size;
+	    integer info;
+	    char *uplo="U";
+	    doublereal *work;
+	    integer *ipiv;	
+	    int i,j;
+	
+	    n_size = $COMP(__n_size);
+
+	    dpotrf_(uplo, &n_size, $P(a), &n_size,  &info);
+
+	    if (info != 0) {barf("POINV: DPOTRF: error in factorization \n");};		
+
+	    dpotri_(uplo, &n_size, $P(a), &n_size,  &info);
+
+	    /* Symmetrize the inverse matrix */
+	    for (i = 1 ; i < n_size ; i++){
+		for ( j = 0 ; j < i ; j++) {
+		    $a(n0 => i, n1=> j) = $a(n0 => j, n1 => i);
+		}
+	    }
+
+	    if (info != 0) {barf("POINV: DPOTRI: error in Invert Matrix\n");};		
+
+',
+
+	PMCode => '
+	
+sub PDL::LAPACK::poinv {
+	my ($a)=@_;
+
+	my(@dims_a) = $a->dims;
+	
+	# Keep from dumping core (FORTRAN does no error checking)
+	barf("poinv requires a 2-D square matrix as arg")
+		unless( @dims_a == 2 && $dims_a[0] == $dims_a[1] );
+
+	# inplace operation ?
+	$a = $a->is_inplace ? $a : $a->copy;
+
+	&PDL::LAPACK::_poinv_int($a);
+
+	return $a;
+}',
+
+	Doc =>   'Inverse of positiv definite symmetric square matrix.',
+	);
+
+
+
+###########################################################################
+# end of function definition
+###########################################################################
+
+pp_addpm({At=>'Bot'},<<'EOD');
+
+=head1 BUGS
+
+No known bugs yet.
+
+=head1 SEE ALSO
+
+perl(1), PDL(1)
+
+=head1 COPYRIGHT
+
+Copyright (c) 2004 Prozentor GmbH. All Rights Reserved.
+This module is free software. It may be used, redistributed
+and/or modified under the same terms as PDL itself
+(see http://pdl.perl.org).
+
+=head1 AUTHOR
+
+Harald Bartel / Prozentor GmbH.
+(harald.bartel@prozentor.de)
+
+=cut
+
+EOD
+
+
+pp_done();
+
+
+
+

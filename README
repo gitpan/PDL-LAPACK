@@ -1,0 +1,60 @@
+PDL::LAPACK
+-----------
+This package is an additional perl PDL module for access to
+fast linear algebra functions from the popular LAPACK math
+package.
+
+Currently only a few functions from LAPACK are reachable through
+PDL::LAPACK. There are currently only the funtions available
+which are needed by the author. We hope that future releases
+will integrate more functions - especially the main 'driver 
+functions' from LAPACK.
+
+If you need special functions or like to submit a patch, please
+contact the author.
+
+
+Naming Convention
+-----------------
+Basically the names in PDL::LAPACK and LAPACK are the same.
+Because we only use the double functions, the leading d is
+omitted.
+
+example:
+
+LAPACK names     : dposv (double real), sposv (single real), cposv (complex)
+PDL::LAPACK name : posv (based on the dposv function)
+
+
+Installation
+------------
+Please read the file INSTALL for detailed information on how
+to configure and install PDL::LAPACK.
+
+Once you have built PDL::LAPACK and installed it along with PDL
+the following use should work without errors:
+
+use PDL;
+use PDL::LAPACK;
+
+Notes
+-----
+The optional subdirectory "LAPACK" should contain a compiled version
+of the CLAPACK libraries with the corresponding header files. This
+is only necessary if there is no global CLAPACK installation available.
+In this case the directory should contain following files:
+
+CLAPACK/blaswrap.h
+CLAPACK/clapack.h
+CLAPACK/f2c.h
+CLAPACK/libF77.a
+CLAPACK/libI77.a
+CLAPACK/libcblaswr.a
+CLAPACK/liblapack_LINUX.a
+CLAPACK/tmglib_LINUX.a
+
+The *_LINUX libraries may be named according to your architecture.
+The lapack_LINUX.a should be renamed into liblapack_LINUX.a for linking.
+
+
+-- Harald Bartel (harald.bartel@prozentor.de)

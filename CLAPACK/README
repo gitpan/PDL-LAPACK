@@ -1,0 +1,12 @@
+In case you don't have a global accessable clapack installation,
+you should copy the needed files into this directory. For example
+the authors directory contains following files: 
+
+blaswrap.h
+clapack.h
+f2c.h
+libF77.a
+libI77.a
+libcblaswr.a
+liblapack_LINUX.a
+tmglib_LINUX.a
